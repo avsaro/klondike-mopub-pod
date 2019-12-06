@@ -7,7 +7,6 @@
 //
 
 #import <AerServSDK/AerServSDK.h>
-
 #import "AerServCustomNativeAdAdapter.h"
 
 @interface AerServCustomNativeAdAdapter () <ASNativeAdCustomDelegate>

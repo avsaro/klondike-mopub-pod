@@ -4,10 +4,12 @@
 //  Copyright (c) 2015 AerServ. All rights reserved.
 //
 
+#import <AerServSDK/AerServSDK.h>
 #import "AerServCustomEventInterstitial.h"
-#import "AerServSDK/ASInterstitialViewController.h"
 #import "AerServCustomEventUtils.h"
-
+#import "AerServBidder.h"
+#import "AerServBidObject.h"
+#import "MPInterstitialAdController.h"
 
 @interface AerServCustomEventInterstitial () <ASInterstitialViewControllerDelegate>
 
@@ -18,25 +20,34 @@
 @implementation AerServCustomEventInterstitial
 
 - (void)requestInterstitialWithCustomEventInfo:(NSDictionary*)info {
+    NSLog(@"AerServCustomEventInterstitial, requestInterstitialWithCustomEventInfo: - info: %@", info);
     @try {
+        // call init if necessary
         id appId = [info objectForKey:kAppId]?[info objectForKey:kAppId]:[info objectForKey:kSiteId];
         if(appId) {
             [AerServCustomEventUtils initWithAppId:[appId isKindOfClass: [NSString class]]?appId:[appId stringValue]];
         }
         
-        // Instantiate ad
+        // check if ad exists in bidding info or not
         NSString* placement = [info objectForKey:kPlacement];
-        self.asInterstitial = [ASInterstitialViewController viewControllerForPlacementID:placement
-                                                                            withDelegate:self];
-        self.asInterstitial.isPreload = YES;
-    
-        // Load ad
-        [self.asInterstitial loadAd];
-    }
-    @catch(NSException* e) {
+        NSMutableDictionary* aerservBiddingInfo = [AerServBidder getAerservBiddingInfo];
+        AerServBidObject* bidObject = aerservBiddingInfo[placement];
+        if([bidObject isKindOfClass:[AerServBidObject class]] &&
+           [bidObject.asInterstitial isKindOfClass:[ASInterstitialViewController class]]) {
+            // ad exists, pull it out from bidding info and notify of load
+            NSLog(@"AerServCustomEventInterstitial, requestInterstitialWithCustomEventInfo: - Aerserv Bid Interstitial is already loaded.Skipping the loading part");
+            self.asInterstitial = bidObject.asInterstitial;
+            [self.asInterstitial setDelegate:self];
+            [self.delegate interstitialCustomEvent:self didLoadAd:self.asInterstitial];
+        } else {
+            // no ad exists, load a new interstitial view controller
+            self.asInterstitial = [ASInterstitialViewController viewControllerForPlacementID:placement withDelegate:self];
+            self.asInterstitial.isPreload = YES;
+            [self.asInterstitial loadAd];
+        }
+    } @catch(NSException* e) {
         MPLogError(@"AerServ interstitial failed to load with error: %@", e);
-        [self.delegate interstitialCustomEvent:self
-                      didFailToLoadAdWithError:nil];
+        [self.delegate interstitialCustomEvent:self didFailToLoadAdWithError:nil];
     }
 }
 
@@ -67,6 +78,19 @@
     [self.delegate interstitialCustomEventDidAppear:self];
 }
 
+- (void)interstitialViewControllerAdImpression:(ASInterstitialViewController*)viewController {
+    MPLogInfo(@"AerServ interstitial received ad impression.");
+    NSMutableDictionary* biddingInfo = [AerServBidder getAerservBiddingInfo];
+    AerServBidObject* bidObject = biddingInfo[viewController.placementID];
+    if([bidObject isKindOfClass:[AerServBidObject class]] &&
+       [bidObject.mpInterstitialAdController isKindOfClass:[MPInterstitialAdController class]]) {
+        MPInterstitialAdController* mpInter = bidObject.mpInterstitialAdController;
+        NSString* updatedKeywords = [bidObject processedKeywords:mpInter.keywords withRemovalOfPlacement:viewController.placementID];
+        mpInter.keywords = [bidObject handleExtraCommasFor:updatedKeywords];
+    }
+    biddingInfo[viewController.placementID] = nil;
+}
+
 - (void)interstitialViewControllerWillDisappear:(ASInterstitialViewController*)viewController {
     MPLogInfo(@"AerServ interstitial will disappear");
     [self.delegate interstitialCustomEventWillDisappear:self];
@@ -80,6 +104,14 @@
 - (void)interstitialViewControllerAdWasTouched:(ASInterstitialViewController*)viewController {
     MPLogInfo(@"AerServ interstitial clicked.");
     [self.delegate interstitialCustomEventDidReceiveTapEvent:self];
+}
+
+- (void)interstitialViewController:(ASInterstitialViewController*)viewController didLoadAdWithTransactionInfo:(NSDictionary*)transactionInfo {
+    MPLogInfo(@"AerServ Interstitial ad did load with transaction info: %@", transactionInfo);
+}
+
+- (void)interstitialViewController:(ASInterstitialViewController*)viewController didShowAdWithTransactionInfo:(NSDictionary*)transactionInfo {
+    MPLogInfo(@"AerServ Interstitial ad did show with transaction info: %@", transactionInfo);
 }
 
 - (void)dealloc {

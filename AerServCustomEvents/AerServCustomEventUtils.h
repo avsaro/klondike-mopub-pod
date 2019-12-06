@@ -2,7 +2,7 @@
 //  AerServCustomEventUtils.h
 //  AerservFabricSampleApp
 //
-//  Created by Hall To on 4/6/17.
+//  Created on 4/6/17.
 //  Copyright © 2017 AerServ. All rights reserved.
 //
 
@@ -18,5 +18,11 @@ extern NSString* const kUserId;
 @interface AerServCustomEventUtils : NSObject
 
 + (void)initWithAppId:(NSString*)appId;
+
+#pragma mark - RegEx Util
+
++ (BOOL)string:(NSString*)inputStr containsPattern:(NSString*)regExPattern;
++ (NSString*)replaceString:(NSString*)inputStr withPattern:(NSString*)regExPattern andReplacement:(NSString*)replacementStr;
++ (NSArray*)findMatchesInString:(NSString*)inputStr withPattern:(NSString*)regExPattern;
 
 @end

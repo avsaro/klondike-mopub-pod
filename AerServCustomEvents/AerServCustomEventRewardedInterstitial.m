@@ -2,13 +2,16 @@
 //  AerServCustomEventRewardedInterstitial.m
 //  AerservFabricSampleApp
 //
-//  Created by Hall To on 4/4/17.
+//  Created on 4/4/17.
 //  Copyright © 2017 AerServ. All rights reserved.
 //
 
+#import <AerServSDK/AerServSDK.h>
 #import "AerServCustomEventRewardedInterstitial.h"
-#import "AerServSDK/ASInterstitialViewController.h"
 #import "AerServCustomEventUtils.h"
+#import "AerServBidder.h"
+#import "AerServBidObject.h"
+#import "MPInterstitialAdController.h"
 
 @interface AerServCustomEventRewardedInterstitial () <ASInterstitialViewControllerDelegate>
 
@@ -20,26 +23,36 @@
 @implementation AerServCustomEventRewardedInterstitial
 
 - (void)requestRewardedVideoWithCustomEventInfo:(NSDictionary*)info {
+    NSLog(@"AerServCustomEventRewardedInterstitial, requestRewardedVideoWithCustomEventInfo - info: %@", info);
     @try {
+        // call init if necessary
         id appId = [info objectForKey:kAppId]?[info objectForKey:kAppId]:[info objectForKey:kSiteId];
         if(appId) {
             [AerServCustomEventUtils initWithAppId:[appId isKindOfClass: [NSString class]]?appId:[appId stringValue]];
         }
-            
-        // Instantiate ad
+        
+        // check if ad exists in bidding info or not
         NSString* placement = [info objectForKey:kPlacement];
-        self.asInterstitial = [ASInterstitialViewController viewControllerForPlacementID:placement
-                                                                            withDelegate:self];
-        self.asInterstitial.isPreload = YES;
-        self.didPreload = NO;
-    
-        // Load ad
-        [self.asInterstitial loadAd];
-    }
-    @catch(NSException* e) {
+        NSMutableDictionary* biddingInfo = [AerServBidder getAerservBiddingInfo];
+        AerServBidObject* bidObject = biddingInfo[placement];
+        if([bidObject isKindOfClass:[AerServBidObject class]] &&
+           [bidObject.asInterstitial isKindOfClass:[ASInterstitialViewController class]]) {
+            // ad exists, pull it out from bidding info and notify of load
+            NSLog(@"AerServCustomEventRewardedInterstitial, requestRewardedVideoWithCustomEventInfo: - Aerserv Bid Rewarded is already loaded.Skipping the loading part");
+            self.asInterstitial = bidObject.asInterstitial;
+            self.asInterstitial.delegate = self;
+            self.didPreload = YES;
+            [self.delegate rewardedVideoDidLoadAdForCustomEvent:self];
+        } else {
+            // no ad exists, load a new interstitial view controller
+            self.asInterstitial = [ASInterstitialViewController viewControllerForPlacementID:placement withDelegate:self];
+            self.asInterstitial.isPreload = YES;
+            self.didPreload = NO;
+            [self.asInterstitial loadAd];
+        }
+    } @catch(NSException* e) {
         MPLogError(@"AerServ rewarded interstitial failed to load with error: %@", e);
-        [self.delegate rewardedVideoDidFailToLoadAdForCustomEvent:self
-                                                            error:nil];
+        [self.delegate rewardedVideoDidFailToLoadAdForCustomEvent:self error:nil];
     }
 }
 
@@ -59,7 +72,6 @@
     MPLogInfo(@"AerServ rewarded interstitial loaded.");
     self.didPreload = YES;
     [self.delegate rewardedVideoDidLoadAdForCustomEvent:self];
-
 }
 
 - (void)interstitialViewControllerAdFailedToLoad:(ASInterstitialViewController*)viewController withError:(NSError*)error {
@@ -75,6 +87,13 @@
 - (void)interstitialViewControllerDidAppear:(ASInterstitialViewController*)viewController {
     MPLogInfo(@"AerServ rewarded interstitial did appear.");
     [self.delegate rewardedVideoDidAppearForCustomEvent:self];
+}
+
+- (void)interstitialViewControllerAdImpression:(ASInterstitialViewController*)viewController {
+    MPLogInfo(@"AerServ rewrded interstitial received ad impression.");
+    NSMutableDictionary* biddingInfo = [AerServBidder getAerservBiddingInfo];
+    biddingInfo[viewController.placementID] = nil;
+    [AerServBidder getSharedBidder].rewardedKeywords = nil;
 }
 
 - (void)interstitialViewControllerWillDisappear:(ASInterstitialViewController*)viewController {
