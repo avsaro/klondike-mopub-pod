@@ -7,7 +7,14 @@
 //
 
 #import <Foundation/Foundation.h>
+
+#if __has_include(<MoPub/MoPub.h>)
+#import <MoPub/MoPub.h>
+#elif __has_include(<MoPubSDKFramework/MoPub.h>)
+#import <MoPubSDKFramework/MoPub.h>
+#else
 #import "MPBaseAdapterConfiguration.h"
+#endif
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -26,6 +33,8 @@ extern NSString * const kIASDKMopubAdapterErrorDomain;
  *  @discussion This adapter set of classes is supported only and only by the VAMP SDK that it is shipped with.
  */
 @interface IASDKMopubAdapterConfiguration : MPBaseAdapterConfiguration
+
++ (void)configureIASDKWithInfo:(NSDictionary *)info;
 
 @end
 

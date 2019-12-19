@@ -27,6 +27,7 @@
 @property (nonatomic, strong) NSString *mopubAdUnitID;
 
 @property (nonatomic) BOOL isIABanner;
+@property (atomic) BOOL clickTracked;
 
 @end
 
@@ -55,6 +56,8 @@
         if (receivedSpotID && [receivedSpotID isKindOfClass:NSString.class] && receivedSpotID.length) {
             spotID = receivedSpotID;
         }
+        
+        [IASDKMopubAdapterConfiguration configureIASDKWithInfo:info];
     }
     
     IAUserData *userData = [IAUserData build:^(id<IAUserDataBuilder>  _Nonnull builder) {
@@ -101,14 +104,15 @@
 		builder.mediationType = [IAMediationMopub new];
 	}];
 	MPLogAdEvent([MPLogEvent adLoadAttemptForAdapter:NSStringFromClass(self.class) dspCreativeId:nil dspName:nil], self.mopubAdUnitID);
+    self.clickTracked = NO;
     
-	__weak typeof(self) weakSelf = self; // a weak reference to 'self' should be used in the next block:
+    __weak __typeof__(self) weakSelf = self; // a weak reference to 'self' should be used in the next block:
 
     [self.adSpot fetchAdWithCompletion:^(IAAdSpot * _Nullable adSpot, IAAdModel * _Nullable adModel, NSError * _Nullable error) {
         if (error) {
             [weakSelf treatError:error.localizedDescription];
         } else {
-			if (adSpot.activeUnitController == weakSelf.bannerUnitController) {
+            if (adSpot.activeUnitController == weakSelf.bannerUnitController) {
                 if (weakSelf.isIABanner && [adSpot.activeUnitController.activeContentController isKindOfClass:IAVideoContentController.class]) {
                     [weakSelf treatError:@"incompatible banner content"];
                 } else {
@@ -180,7 +184,10 @@
 
 - (void)IAAdDidReceiveClick:(IAUnitController * _Nullable)unitController {
     MPLogAdEvent([MPLogEvent adTappedForAdapter:NSStringFromClass(self.class)], self.mopubAdUnitID);
-    [self.delegate trackClick]; // manual track;
+    if (!self.clickTracked) {
+        self.clickTracked = YES;
+        [self.delegate trackClick]; // manual track;
+    }
 }
 
 - (void)IAAdWillLogImpression:(IAUnitController * _Nullable)unitController {
@@ -224,7 +231,13 @@
 
 - (void)IAMRAIDContentController:(IAMRAIDContentController * _Nullable)contentController MRAIDAdWillExpandToFrame:(CGRect)frame {
     MPLogInfo(@"<Inneractive> MRAID ad will expand;");
-    [self.delegate bannerCustomEventWillExpandAd:self];
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
+    if ([self.delegate respondsToSelector:@selector(bannerCustomEventWillExpandAd:)]) {
+        [self.delegate performSelector:@selector(bannerCustomEventWillExpandAd:) withObject:self];
+    }
+#pragma clang diagnostic pop
 }
 
 - (void)IAMRAIDContentController:(IAMRAIDContentController * _Nullable)contentController MRAIDAdDidExpandToFrame:(CGRect)frame {
@@ -237,7 +250,13 @@
 
 - (void)IAMRAIDContentControllerMRAIDAdDidCollapse:(IAMRAIDContentController * _Nullable)contentController {
     MPLogInfo(@"<Inneractive> MRAID ad did collapse;");
-    [self.delegate bannerCustomEventDidCollapseAd:self];
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
+    if ([self.delegate respondsToSelector:@selector(bannerCustomEventDidCollapseAd:)]) {
+        [self.delegate performSelector:@selector(bannerCustomEventDidCollapseAd:) withObject:self];
+    }
+#pragma clang diagnostic pop
 }
 
 #pragma mark - IAVideoContentDelegate

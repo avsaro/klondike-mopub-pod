@@ -25,6 +25,7 @@
 @property (nonatomic, strong) IAMRAIDContentController *MRAIDContentController;
 @property (nonatomic, strong) IAVideoContentController *videoContentController;
 @property (nonatomic, strong) NSString *mopubAdUnitID;
+@property (nonatomic) BOOL clickTracked;
 
 /**
  *  @brief The view controller, that presents the Inneractive Interstitial Ad.
@@ -52,6 +53,8 @@
         if (receivedSpotID && [receivedSpotID isKindOfClass:NSString.class] && receivedSpotID.length) {
             spotID = receivedSpotID;
         }
+        
+        [IASDKMopubAdapterConfiguration configureIASDKWithInfo:info];
     }
     
     IAUserData *userData = [IAUserData build:^(id<IAUserDataBuilder>  _Nonnull builder) {
@@ -99,7 +102,7 @@
 	}];
 	MPLogAdEvent([MPLogEvent adLoadAttemptForAdapter:NSStringFromClass(self.class) dspCreativeId:nil dspName:nil], self.mopubAdUnitID);
     
-	__weak typeof(self) weakSelf = self; // a weak reference to 'self' should be used in the next block:
+	__weak __typeof__(self) weakSelf = self; // a weak reference to 'self' should be used in the next block:
 	
 	[self.adSpot fetchAdWithCompletion:^(IAAdSpot * _Nullable adSpot, IAAdModel * _Nullable adModel, NSError * _Nullable error) {
 		if (error) {
@@ -163,7 +166,10 @@
 - (void)IAAdDidReceiveClick:(IAUnitController * _Nullable)unitController {
     MPLogAdEvent([MPLogEvent adTappedForAdapter:NSStringFromClass(self.class)], self.mopubAdUnitID);
 	[self.delegate interstitialCustomEventDidReceiveTapEvent:self];
-    [self.delegate trackClick]; // manual track;
+    if (!self.clickTracked) {
+        self.clickTracked = YES;
+        [self.delegate trackClick]; // manual track;
+    }
 }
 
 - (void)IAAdWillLogImpression:(IAUnitController * _Nullable)unitController {
