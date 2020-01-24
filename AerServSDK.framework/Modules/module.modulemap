@@ -1,6 +1,0 @@
-framework module AerServSDK {
-  umbrella header "AerServSDK.h"
-
-  export *
-  module * { export * }
-}
