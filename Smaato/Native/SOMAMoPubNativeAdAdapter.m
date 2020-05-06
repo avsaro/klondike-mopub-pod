@@ -86,7 +86,7 @@
 		[self.delegate nativeAdWillLogImpression:self];
 		if (self.isBeaconsCalled == NO) {
 			self.isBeaconsCalled = YES;
-			NSArray* urls =  _properties[kImpressionTrackerURLsKey];
+            NSArray* urls = nil;//_properties[kImpressionTrackerURLsKey];
 			if (urls != nil && [urls isKindOfClass:[NSArray class]]) {
                 if (self.agent) {
                     self.agent = nil;

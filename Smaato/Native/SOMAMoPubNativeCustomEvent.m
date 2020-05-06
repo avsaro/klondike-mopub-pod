@@ -238,7 +238,7 @@
         dic[kAdStarRatingKey] = [NSNumber numberWithFloat:dto.rating];
         dic[kAdCTATextKey] = dto.CTAText;
         dic[kDefaultActionURLKey] = dto.nativeURL.absoluteString;
-        dic[kImpressionTrackerURLsKey] = dto.impressionTrackersUrls;
+//        dic[kImpressionTrackerURLsKey] = dto.impressionTrackersUrls;
         dic[kClickTrackerURLKey] = dto.clickTrackersUrls;
         
         SOMAMoPubNativeAdAdapter* adapter = [[SOMAMoPubNativeAdAdapter alloc] init:[dic copy] withDefaultActionURL:dto.nativeURL];
