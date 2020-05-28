@@ -40,12 +40,22 @@
 
 /**
  *
- *  @brief Is called each time the MoPub SDK requests a new rewarded video ad.
+ *  @brief Is called each time the MoPub SDK requests a new rewarded video ad. MoPub < 5.10.
  *
  *  @param info A dictionary containing additional custom data associated with a given custom event
  * request. This data is configurable on the MoPub website, and may be used to pass a dynamic information, such as spotID.
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-implementations"
 - (void)requestRewardedVideoWithCustomEventInfo:(NSDictionary *)info {
+    [self requestRewardedVideoWithCustomEventInfo:info adMarkup:nil];
+}
+#pragma GCC diagnostic pop
+
+/**
+ *  @brief MoPub 5.10+.
+ */
+- (void)requestRewardedVideoWithCustomEventInfo:(NSDictionary *)info adMarkup:(NSString *)adMarkup {
 #warning Set your spotID or define it @MoPub console inside the "extra" JSON:
     NSString *spotID = @"";
     
@@ -124,11 +134,19 @@
 
 - (void)presentRewardedVideoFromViewController:(UIViewController *)viewController {
     MPLogAdEvent([MPLogEvent adShowAttemptForAdapter:NSStringFromClass(self.class)], self.mopubAdUnitID);
-
+    
+    NSString *errorString = nil;
+    
     if (!viewController) {
-        [self treatLoadOrShowError:@"rootViewController must not be a nil. Will not show the ad." isLoad:NO];
+        errorString = @"viewController must not be nil;";
+    } else if (self.interstitialUnitController.isPresented) {
+        errorString = @"the rewarded ad is already presented;";
     } else if (!self.isVideoAvailable) {
-        [self treatLoadOrShowError:@"requesting video presentation before it is ready" isLoad:NO];
+        errorString = @"requesting video presentation before it is ready;";
+    }
+
+    if (errorString) {
+        [self treatLoadOrShowError:errorString isLoad:NO];
     } else {
         self.viewControllerForPresentingModalView = viewController;
         [self.interstitialUnitController showAdAnimated:YES completion:nil];
