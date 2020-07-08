@@ -1,0 +1,6 @@
+framework module InMobiMoPubPlugin {
+  umbrella header "InMobiMoPubPlugin.h"
+
+  export *
+  module * { export * }
+}
