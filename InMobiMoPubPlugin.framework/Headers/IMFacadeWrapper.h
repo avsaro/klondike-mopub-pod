@@ -10,9 +10,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-#define kIMABInMobiObjectKey @"IMABInMobiObject"
-
 @interface IMFacadeWrapper : NSObject
+
+extern NSString* const kIMABInMobiObjectKey;
 
 @property(nonatomic, strong) id imAd;
 @property(nonatomic, weak) id mpAd;
