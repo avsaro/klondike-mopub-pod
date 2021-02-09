@@ -21,7 +21,7 @@ typedef enum {
 @property(readonly, nonatomic) NSInteger width;
 @property(readonly, nonatomic) NSInteger height;
 @property(readonly, nonatomic) NSString *slotUUID;
-@property(readonly, nonatomic) NSDictionary *pubSettings;
+@property(nonatomic) NSDictionary *pubSettings;
 
 
 - (instancetype)init NS_UNAVAILABLE;
